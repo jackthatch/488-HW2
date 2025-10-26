@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from scipy.io import loadmat
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -82,6 +84,26 @@ def supervised_classification(x, y, training_size):
     
     return res
 
+def supervised_classification_classwise(x, y, training_size):
+    res = {}
+
+    for name, model in classifications:
+        x_train, x_test, y_train, y_test = train_test_split(
+            x, y, train_size=training_size, stratify=y, random_state=0
+        )
+        model.fit(x_train, y_train)
+        y_pred = model.predict(x_test)
+        classes = np.unique(y_test)
+        class_acc = {}
+
+        for c in classes:
+            mask = (y_test == c)
+            class_acc[c] = np.mean(y_pred[mask] == y_test[mask])
+
+        res[name] = class_acc
+    
+    return res
+
 results_base = {name: [] for name, _ in classifications}
 results_pca = {name: [] for name, _ in classifications}
 results_lda = {name: [] for name, _ in classifications}
@@ -95,6 +117,27 @@ for size in training_sizes:
         results_base[name].append(base_res[name])
         results_pca[name].append(pca_res[name])
         results_lda[name].append(lda_res[name])
+
+    if (size == 0.4):
+        classwise_base_res = supervised_classification_classwise(x_scaled, y, size)
+        classwise_pca_res  = supervised_classification_classwise(x_pca,  y, size)
+        classwise_lda_res  = supervised_classification_classwise(x_lda,  y, size)
+
+## just printing classwise data and will convert to table in doc
+
+df_base = pd.DataFrame(classwise_base_res).round(3)
+df_pca  = pd.DataFrame(classwise_pca_res).round(3)
+df_lda  = pd.DataFrame(classwise_lda_res).round(3)
+
+print("classwise no dim")
+print(df_base)
+
+print("\nclasswise pca")
+print(df_pca)
+
+print("\nclasswise lda")
+print(df_lda)
+
 
 sizes_percent = [int(s*100) for s in training_sizes]
 
